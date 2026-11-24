@@ -1,10 +1,7 @@
-#ISS Clean up Script. Requires 7zip to be installed.
+#IIS Clean up Script. Requires Windows PowerShell 5.0 or later.
 #import IIS WebAdministration Module - PS Script Must be run as admin
 Import-Module WebAdministration
 
-
-$7zipPath = "$env:ProgramFiles\7-Zip\7z.exe"
-if (-not (test-path "$7zipPath")) {throw "$7zipPath needed"}
 
 $PMonth = (Get-Date).Month-1
 $CMonth = (Get-Date).Month
@@ -29,14 +26,13 @@ foreach($WebSite in $(get-website)){
         $OutZipFile = "$IISlogFilePath\$ZipName"
         $ToZip = (Get-ChildItem -Path $IISlogFilePath -Filter *.log) | Where-Object {$_.LastWriteTime -ge $StartDate -and $_.LastWriteTime -le $EndDate}
         If ($ToZip.count -ne $Null) {
-            Foreach($File in $ToZip){
-                $FileToZip = $File.FullName
-                & $7zipPath a $OutZipFile $FileToZip
+            if (Test-Path -LiteralPath $OutZipFile) {
+                Compress-Archive -Path $ToZip.FullName -DestinationPath $OutZipFile -Update -ErrorAction Stop
             }
-            Foreach($File in $ToZip){
-                $FileName = $File.FullName
-                Remove-Item -Path $FileName
+            else {
+                Compress-Archive -Path $ToZip.FullName -DestinationPath $OutZipFile -ErrorAction Stop
             }
+            $ToZip | Remove-Item -ErrorAction Stop
         }  
         $MCount++      
     } until ($MCount -eq $CMonth)
